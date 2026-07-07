@@ -1,0 +1,375 @@
+:root {
+  --base: #f0f0f0;
+  --ink: #303030;
+  --accent-1: #1ffe1f;
+  --accent-2: #11c2e4;
+  --line: #303030;
+  --font: "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", Meiryo, sans-serif;
+  --mono: "Cascadia Code", "Consolas", "SF Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--font);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--base);
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.page {
+  width: min(880px, 100%);
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas:
+    "steps  steps"
+    "action log"
+    "backup backup"
+    "footer footer";
+}
+
+.cell {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--base);
+}
+
+.cell--steps { grid-area: steps; }
+.cell--action { grid-area: action; border-right: 1px solid var(--line); }
+.cell--log { grid-area: log; }
+.cell--backup { grid-area: backup; }
+.cell--footer { grid-area: footer; }
+
+.cell h2 {
+  margin: 0 0 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.steps {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.steps li + li {
+  margin-top: 6px;
+}
+
+.hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--ink);
+  opacity: 0.72;
+}
+
+.port-guide {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+}
+
+.port-guide summary {
+  cursor: pointer;
+  font-weight: 600;
+  list-style: none;
+}
+
+.port-guide summary::-webkit-details-marker {
+  display: none;
+}
+
+.port-guide summary::before {
+  content: "+ ";
+  font-weight: 400;
+}
+
+.port-guide[open] summary::before {
+  content: "− ";
+}
+
+.port-guide ol {
+  margin: 8px 0 0;
+  padding-left: 1.2em;
+}
+
+.port-guide kbd {
+  display: inline-block;
+  padding: 0 4px;
+  border: 1px solid var(--line);
+  background: var(--base);
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.status-block {
+  margin-bottom: 10px;
+}
+
+.status-label {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.status-text {
+  font-size: 12px;
+  font-weight: 600;
+  min-height: 1.4em;
+}
+
+.status-text.is-success {
+  color: var(--ink);
+  background: var(--accent-1);
+  display: inline-block;
+  padding: 2px 6px;
+}
+
+.status-text.is-error {
+  color: var(--ink);
+  background: var(--base);
+  outline: 1px solid var(--line);
+  outline-offset: -1px;
+  display: inline-block;
+  padding: 2px 6px;
+  border-left: 3px solid var(--accent-2);
+}
+
+.status-text.is-active {
+  color: var(--ink);
+  background: var(--accent-2);
+  display: inline-block;
+  padding: 2px 6px;
+}
+
+.progress-wrap {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.progress-track {
+  height: 8px;
+  border: 1px solid var(--line);
+  background: var(--base);
+}
+
+.progress-bar {
+  width: 0%;
+  height: 100%;
+  background: var(--accent-1);
+  transition: width 0.15s linear;
+}
+
+.progress-percent {
+  min-width: 2.5rem;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  text-align: right;
+}
+
+.btn-primary,
+.btn-secondary {
+  border: 1px solid var(--line);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  background: var(--base);
+  color: var(--ink);
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 8px 12px;
+  font-weight: 600;
+  background: var(--ink);
+  color: var(--base);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-2);
+  color: var(--ink);
+}
+
+.btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: var(--ink);
+  color: var(--base);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--accent-2);
+  color: var(--ink);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.browser-warning {
+  margin: 10px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent-2);
+}
+
+.log {
+  min-height: 140px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 8px;
+  border: 1px solid var(--line);
+  background: var(--base);
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.log-entry {
+  margin: 0;
+  color: var(--ink);
+  opacity: 0.8;
+}
+
+.log-entry + .log-entry {
+  margin-top: 2px;
+}
+
+.log-entry.info { opacity: 0.72; }
+.log-entry.success { opacity: 1; background: var(--accent-1); padding: 0 2px; }
+.log-entry.error { opacity: 1; border-left: 2px solid var(--accent-2); padding-left: 4px; }
+.log-entry.warn { opacity: 1; background: var(--accent-2); padding: 0 2px; }
+
+.backup-note {
+  margin: 0 0 8px;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.file-label {
+  display: block;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.file-label:hover {
+  background: var(--accent-2);
+}
+
+.file-label input {
+  display: none;
+}
+
+#manualFileName {
+  font-size: 11px;
+}
+
+.cell--footer {
+  font-size: 10px;
+}
+
+.cell--footer p {
+  margin: 0;
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 10px;
+}
+
+.firmware-info.ok {
+  display: inline-block;
+  padding: 1px 4px;
+  background: var(--accent-1);
+}
+
+.firmware-info.error {
+  border-left: 2px solid var(--accent-2);
+  padding-left: 4px;
+}
+
+strong {
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  body {
+    align-items: flex-start;
+    padding: 12px;
+  }
+
+  .page {
+    border: 1px solid var(--line);
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "steps"
+      "action"
+      "log"
+      "backup"
+      "footer";
+  }
+
+  .cell--action {
+    border-right: none;
+  }
+
+  .cell {
+    padding: 10px 12px;
+  }
+}

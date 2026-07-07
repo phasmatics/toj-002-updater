@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ToJ-002 Firmware Updater</title>
+  <meta name="description" content="ToJ-002 (XIAO SAMD21) ファームウェアをブラウザから直接書き込みます。">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <h1>ToJ-002 Firmware Updater</h1>
+    </header>
+
+    <main class="grid">
+      <section class="cell cell--steps" aria-labelledby="steps-title">
+        <h2 id="steps-title">手順</h2>
+        <ol class="steps">
+          <li>ToJ-002（XIAO SAMD21）を USB ケーブルで PC に接続します。</li>
+          <li>
+            下の「接続してアップデート」を押し、ポップアップから
+            <code>TinyUSB Serial (COMx)</code> または <em>Seeeduino XIAO</em>（ブートローダー中）の
+            シリアルポートを選択してください。
+            <span class="hint">通常動作中のポートを選ぶと、自動的にブートローダーモードへ移行します。</span>
+          </li>
+          <li>
+            自動移行しない場合は、XIAO SAMD21背面にあるリセットパッドを <strong>素早く２回ショート</strong>
+            させてブートローダーモードに入れてから、もう一度「接続してアップデート」を押してください。
+            <span class="hint">オレンジの LED がゆっくり点滅していればブートローダーモードになっています。</span>
+          </li>
+        </ol>
+        <details class="port-guide">
+          <summary>どの COM ポートを選べばいい？（Windows）</summary>
+          <ol>
+            <li>キーボードの <kbd>Win</kbd> + <kbd>X</kbd> →「デバイスマネージャー」を開く</li>
+            <li>「ポート (COM と LPT)」を展開する</li>
+            <li>
+              <strong>ブートローダー中</strong>（LED 点滅）:
+              <code>Seeeduino XIAO (COMx)</code> または <code>USB Serial Device (COMx)</code>
+            </li>
+            <li>
+              <strong>通常動作中</strong>:
+              <code>TinyUSB Serial (COMx)</code>
+              （Web Serial のポップアップに表示される名前。MIDI デバイスではない方）
+            </li>
+            <li>ブラウザのポート選択ダイアログで、上記と同じ名前のポートを選ぶ</li>
+          </ol>
+          <p class="hint">
+            ポート選択はボタンを押すたびに1回だけです。失敗した場合は準備を整えてから、再度ボタンを押してください。
+          </p>
+          <p class="hint">
+            <strong>重要:</strong> アップデート中は Cursor のシリアルモニタ（PlatformIO Serial Monitor）を
+            閉じてください。COM ポートは同時に1つのアプリしか使えません。
+          </p>
+        </details>
+      </section>
+
+      <section class="cell cell--action">
+        <div class="status-block">
+          <div class="status-label">ステータス</div>
+          <div id="statusText" class="status-text" role="status" aria-live="polite">未接続</div>
+        </div>
+
+        <div class="progress-wrap" aria-hidden="true">
+          <div class="progress-track">
+            <div id="progressBar" class="progress-bar"></div>
+          </div>
+          <div id="progressPercent" class="progress-percent">0%</div>
+        </div>
+
+        <button id="updateBtn" type="button" class="btn-primary">
+          接続してアップデート
+        </button>
+
+        <p id="browserWarning" class="browser-warning" hidden>
+          このブラウザは Web Serial API に対応していません。Chrome / Edge / Opera など Chromium 系ブラウザをご利用ください。
+        </p>
+      </section>
+
+      <section class="cell cell--log" aria-labelledby="log-title">
+        <h2 id="log-title">ログ</h2>
+        <div id="log" class="log" role="log" aria-live="polite"></div>
+      </section>
+
+      <section class="cell cell--backup" aria-labelledby="backup-title">
+        <h2 id="backup-title">開発用：手動ファイル選択</h2>
+        <p class="backup-note">
+          通常は同梱の <code>firmware.bin</code> を自動で使用します。テスト時のみローカルの .bin を選べます。
+        </p>
+        <label class="file-label" for="manualFile">
+          <input id="manualFile" type="file" accept=".bin,application/octet-stream">
+          <span id="manualFileName">ファイル未選択（自動取得を使用）</span>
+        </label>
+        <button id="clearManualBtn" type="button" class="btn-secondary" disabled>手動選択を解除</button>
+      </section>
+
+      <footer class="cell cell--footer">
+        <p id="firmwareInfo" class="firmware-info">読み込み待ち…</p>
+      </footer>
+    </main>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
