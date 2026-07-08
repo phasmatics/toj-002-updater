@@ -135,8 +135,12 @@ const ui = {
   spriteZoomValue: document.getElementById("spriteZoomValue"),
   sendSpriteBtn: document.getElementById("sendSpriteBtn"),
   resetSpriteBtn: document.getElementById("resetSpriteBtn"),
+  shareSpriteBtn: document.getElementById("shareSpriteBtn"),
   spriteStatus: document.getElementById("spriteStatus"),
   togglePreviewBtn: document.getElementById("togglePreviewBtn"),
+  shareModal: document.getElementById("shareModal"),
+  shareUrlInput: document.getElementById("shareUrlInput"),
+  shareCopyBtn: document.getElementById("shareCopyBtn"),
 };
 
 let bundledFirmware = null;
@@ -302,6 +306,104 @@ function packSpriteFramesToDeviceBytes() {
     }
   }
   return out;
+}
+
+function unpackDeviceBytesToSpriteFrames(bytes) {
+  if (bytes.length !== SPRITE_TOTAL) {
+    throw new Error(`スプライトデータの長さが不正です（${bytes.length} バイト）`);
+  }
+
+  for (let f = 0; f < SPRITE_FRAMES; f++) {
+    const dst = spriteFrames[f];
+    const base = f * SPRITE_BYTES;
+    for (let row = 0; row < SPRITE_H; row++) {
+      for (let byte = 0; byte < 2; byte++) {
+        const v = bytes[base + row * 2 + byte];
+        for (let bit = 0; bit < 8; bit++) {
+          const col = byte * 8 + bit;
+          dst[row * SPRITE_W + col] = (v & (0x80 >> bit)) ? 1 : 0;
+        }
+      }
+    }
+  }
+}
+
+function bytesToBase64Url(bytes) {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function base64UrlToBytes(encoded) {
+  let b64 = encoded.replace(/-/g, "+").replace(/_/g, "/");
+  const pad = b64.length % 4;
+  if (pad) b64 += "=".repeat(4 - pad);
+  const binary = atob(b64);
+  const out = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    out[i] = binary.charCodeAt(i);
+  }
+  return out;
+}
+
+function buildSpriteShareUrl() {
+  const encoded = bytesToBase64Url(packSpriteFramesToDeviceBytes());
+  const url = new URL(window.location.href);
+  url.searchParams.set("sprites", encoded);
+  return url.toString();
+}
+
+function loadSpritesFromQuery() {
+  const encoded = new URL(window.location.href).searchParams.get("sprites");
+  if (!encoded) return false;
+
+  try {
+    unpackDeviceBytesToSpriteFrames(base64UrlToBytes(encoded));
+    drawSpriteEditor();
+    previewStartMs = performance.now();
+    setMiniStatus("共有リンクから読み込みました", "success");
+    log("URL パラメーター sprites からキャラクターを読み込みました", "success");
+    return true;
+  } catch (error) {
+    log(`共有リンクの読み込みに失敗: ${error.message}`, "error");
+    setMiniStatus("共有リンクが不正です", "error");
+    return false;
+  }
+}
+
+function openShareModal() {
+  if (!ui.shareModal || !ui.shareUrlInput) return;
+  ui.shareUrlInput.value = buildSpriteShareUrl();
+  ui.shareModal.hidden = false;
+  ui.shareUrlInput.focus();
+  ui.shareUrlInput.select();
+}
+
+function closeShareModal() {
+  if (!ui.shareModal) return;
+  ui.shareModal.hidden = true;
+}
+
+async function copyShareUrl() {
+  const text = ui.shareUrlInput?.value ?? buildSpriteShareUrl();
+  try {
+    await navigator.clipboard.writeText(text);
+    if (ui.shareCopyBtn) {
+      const prev = ui.shareCopyBtn.textContent;
+      ui.shareCopyBtn.textContent = "コピーしました";
+      setTimeout(() => {
+        ui.shareCopyBtn.textContent = prev;
+      }, 1500);
+    }
+    log("共有 URL をコピーしました", "success");
+  } catch {
+    ui.shareUrlInput?.focus();
+    ui.shareUrlInput?.select();
+    document.execCommand("copy");
+    log("共有 URL をコピーしました", "success");
+  }
 }
 
 function drawBitmap1bpp(ctx, bmpBytes, x, y, w, h, scale) {
@@ -1077,6 +1179,21 @@ function init() {
     }
   });
 
+  ui.shareSpriteBtn?.addEventListener("click", () => {
+    openShareModal();
+  });
+  ui.shareCopyBtn?.addEventListener("click", () => {
+    copyShareUrl();
+  });
+  ui.shareModal?.querySelectorAll("[data-share-close]").forEach((el) => {
+    el.addEventListener("click", closeShareModal);
+  });
+  document.addEventListener("keydown", (evt) => {
+    if (evt.key === "Escape" && ui.shareModal && !ui.shareModal.hidden) {
+      closeShareModal();
+    }
+  });
+
   ui.togglePreviewBtn?.addEventListener("click", () => {
     previewRunning = !previewRunning;
     if (previewRunning) {
@@ -1091,7 +1208,9 @@ function init() {
   setActiveTab(0);
   setActiveTool("pencil");
   spriteZoom();
-  setMiniStatus("未転送");
+  if (!loadSpritesFromQuery()) {
+    setMiniStatus("未転送");
+  }
   requestAnimationFrame(previewLoop);
 }
 

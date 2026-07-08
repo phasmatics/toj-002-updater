@@ -110,6 +110,7 @@
             <div class="sprite-actions">
               <button id="sendSpriteBtn" type="button" class="btn-primary">キャラクターを転送</button>
               <button id="resetSpriteBtn" type="button" class="btn-secondary">デフォルトに戻す</button>
+              <button id="shareSpriteBtn" type="button" class="btn-secondary">共有</button>
               <div id="spriteStatus" class="mini-status" role="status" aria-live="polite">未転送</div>
             </div>
           </div>
@@ -145,6 +146,17 @@
         <p id="firmwareInfo" class="firmware-info">読み込み待ち…</p>
       </footer>
     </main>
+  </div>
+
+  <div id="shareModal" class="share-modal" hidden>
+    <div class="share-modal__backdrop" data-share-close></div>
+    <div class="share-modal__panel" role="dialog" aria-labelledby="shareModalTitle" aria-modal="true">
+      <h3 id="shareModalTitle" class="share-modal__title">キャラクターを共有</h3>
+      <div class="share-modal__row">
+        <input id="shareUrlInput" class="share-modal__url" type="text" readonly>
+        <button id="shareCopyBtn" type="button" class="btn-secondary share-modal__copy">コピー</button>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="js/app.js"></script>

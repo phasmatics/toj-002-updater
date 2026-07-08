@@ -166,10 +166,71 @@ body {
   align-items: center;
 }
 
+.sprite-actions #sendSpriteBtn {
+  grid-column: 1 / -1;
+}
+
 .sprite-actions .btn-primary,
 .sprite-actions .btn-secondary {
   width: 100%;
   margin-top: 0;
+}
+
+.share-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.share-modal[hidden] {
+  display: none;
+}
+
+.share-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(48, 48, 48, 0.35);
+}
+
+.share-modal__panel {
+  position: relative;
+  width: min(520px, 100%);
+  border: 1px solid var(--line);
+  background: var(--base);
+  padding: 12px 14px;
+}
+
+.share-modal__title {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.share-modal__row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.share-modal__url {
+  border: 1px solid var(--line);
+  background: var(--base);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 8px 10px;
+  min-width: 0;
+}
+
+.share-modal__copy {
+  margin-top: 0;
+  white-space: nowrap;
+  padding-left: 14px;
+  padding-right: 14px;
 }
 
 .mini-status {
