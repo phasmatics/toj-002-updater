@@ -423,6 +423,26 @@ function drawBitmap1bpp(ctx, bmpBytes, x, y, w, h, scale) {
 let previewRunning = true;
 let previewStartMs = performance.now();
 
+const PREVIEW_MOVE_DURATION = 3.0;
+
+function previewMoveX(lt, centerX, leftX, rightX) {
+  if (lt >= PREVIEW_MOVE_DURATION) return centerX;
+
+  const seg = PREVIEW_MOVE_DURATION / 4;
+  const s = lt / seg;
+
+  if (s < 1) {
+    return centerX + (leftX - centerX) * s;
+  }
+  if (s < 2) {
+    return leftX + (centerX - leftX) * (s - 1);
+  }
+  if (s < 3) {
+    return centerX + (rightX - centerX) * (s - 2);
+  }
+  return rightX + (centerX - rightX) * (s - 3);
+}
+
 function renderPreview(nowMs) {
   const canvas = ui.previewCanvas;
   if (!canvas) return;
@@ -439,8 +459,8 @@ function renderPreview(nowMs) {
   const t = (nowMs - previewStartMs) / 1000;
 
   // Sequence:
-  // 0..3.0s: move left-right with 2-frame animation
-  // 3.0..4.2s: KO fall to bottom
+  // 0..3.0s: center → left → center → right → center (2-frame animation)
+  // 3.0..4.2s: Down frame at center, fall to bottom
   // 4.2..5.0s: heart appear near bottom
   // 5.0..6.2s: return to center
   // loop
@@ -458,13 +478,10 @@ function renderPreview(nowMs) {
   let frame = 0;
   let showHeart = false;
 
-  if (lt < 3.0) {
-    const phase = lt / 3.0;
-    // ping-pong
-    const ping = phase < 0.5 ? phase * 2 : (1 - phase) * 2;
-    x = Math.round(leftX + (rightX - leftX) * ping);
+  if (lt < PREVIEW_MOVE_DURATION) {
+    x = Math.round(previewMoveX(lt, centerX, leftX, rightX));
     y = centerY;
-    frame = Math.floor((lt * 5) % 2); // similar to device 200ms-ish
+    frame = Math.floor((lt * 5) % 2);
   } else if (lt < 4.2) {
     x = centerX;
     const p = (lt - 3.0) / 1.2;
