@@ -83,6 +83,52 @@
         <div id="log" class="log" role="log" aria-live="polite"></div>
       </section>
 
+      <section class="cell cell--sprite" aria-labelledby="sprite-title">
+        <h2 id="sprite-title">キャラクター</h2>
+
+        <div class="sprite-grid">
+          <div class="sprite-pane">
+            <div class="sprite-tabs" role="tablist" aria-label="スプライト">
+              <button id="spriteTabA" type="button" class="tab is-active" role="tab" aria-selected="true">Frame 1</button>
+              <button id="spriteTabB" type="button" class="tab" role="tab" aria-selected="false">Frame 2</button>
+              <button id="spriteTabKO" type="button" class="tab" role="tab" aria-selected="false">Down</button>
+            </div>
+
+            <div class="sprite-canvas-wrap">
+              <canvas id="spriteCanvas" width="80" height="80" class="sprite-canvas" aria-label="16x16 ドット絵エディタ"></canvas>
+            </div>
+
+            <div class="sprite-tools">
+              <button id="toolPencil" type="button" class="tool is-active">Pencil</button>
+              <button id="toolEraser" type="button" class="tool">Eraser</button>
+
+              <label class="zoom-label" for="spriteZoom">Zoom</label>
+              <input id="spriteZoom" type="range" min="5" max="24" value="8" step="1">
+              <span id="spriteZoomValue" class="zoom-value">8×</span>
+            </div>
+
+            <div class="sprite-actions">
+              <button id="sendSpriteBtn" type="button" class="btn-primary">キャラクターを転送</button>
+              <button id="resetSpriteBtn" type="button" class="btn-secondary">デフォルトに戻す</button>
+              <div id="spriteStatus" class="mini-status" role="status" aria-live="polite">未転送</div>
+            </div>
+          </div>
+
+          <div class="sprite-pane">
+            <div class="preview-head">
+              <div class="preview-label">Preview（OLED 128×64）</div>
+              <button id="togglePreviewBtn" type="button" class="btn-secondary">再生 / 停止</button>
+            </div>
+            <div class="preview-wrap">
+              <canvas id="previewCanvas" width="640" height="320" class="preview-canvas" aria-label="プレビュー"></canvas>
+            </div>
+            <div class="hint">
+              実機の動きの再現：左右移動 → ダウン → 落下 → ハート → 復活
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="cell cell--backup" aria-labelledby="backup-title">
         <h2 id="backup-title">開発用：手動ファイル選択</h2>
         <p class="backup-note">

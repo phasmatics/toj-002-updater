@@ -73,6 +73,17 @@ const FIRMWARE_URL = "./firmware.bin";
 const FIRMWARE_VERSION = "0.6.1";
 const BOOTLOADER_SIZE = 0x2000;
 
+// Sprite transfer protocol (TOJS)
+const SPRITE_MAGIC_SET = new Uint8Array([0x54, 0x4f, 0x4a, 0x53]); // 'TOJS'
+const SPRITE_MAGIC_RESET = new Uint8Array([0x54, 0x4f, 0x4a, 0x44]); // 'TOJD'
+const SPRITE_PROTO_VER = 1;
+const SPRITE_W = 16;
+const SPRITE_H = 16;
+const SPRITE_BYTES = 32;
+const SPRITE_FRAMES = 3; // A, B, KO
+const SPRITE_TOTAL = SPRITE_BYTES * SPRITE_FRAMES;
+const PREVIEW_SCALE = 5;
+
 const USB_FILTERS = [
   { usbVendorId: 0x2886 }, // Seeed Studio (ToJ-002 / XIAO)
   { usbVendorId: 0x2341 }, // Arduino
@@ -111,6 +122,21 @@ const ui = {
   manualFileName: document.getElementById("manualFileName"),
   clearManualBtn: document.getElementById("clearManualBtn"),
   firmwareInfo: document.getElementById("firmwareInfo"),
+
+  // Sprite editor
+  spriteCanvas: document.getElementById("spriteCanvas"),
+  previewCanvas: document.getElementById("previewCanvas"),
+  spriteTabA: document.getElementById("spriteTabA"),
+  spriteTabB: document.getElementById("spriteTabB"),
+  spriteTabKO: document.getElementById("spriteTabKO"),
+  toolPencil: document.getElementById("toolPencil"),
+  toolEraser: document.getElementById("toolEraser"),
+  spriteZoom: document.getElementById("spriteZoom"),
+  spriteZoomValue: document.getElementById("spriteZoomValue"),
+  sendSpriteBtn: document.getElementById("sendSpriteBtn"),
+  resetSpriteBtn: document.getElementById("resetSpriteBtn"),
+  spriteStatus: document.getElementById("spriteStatus"),
+  togglePreviewBtn: document.getElementById("togglePreviewBtn"),
 };
 
 let bundledFirmware = null;
@@ -145,8 +171,353 @@ function log(message, type = "info") {
   console.log(`[${type}] ${message}`);
 }
 
+function setMiniStatus(text, tone = "default") {
+  if (!ui.spriteStatus) return;
+  ui.spriteStatus.textContent = text;
+  ui.spriteStatus.className = "mini-status";
+  if (tone === "success") ui.spriteStatus.style.background = "var(--accent-1)";
+  else if (tone === "active") ui.spriteStatus.style.background = "var(--accent-2)";
+  else if (tone === "error") ui.spriteStatus.style.background = "var(--base)";
+  else ui.spriteStatus.style.background = "var(--base)";
+}
+
 function activeFirmware() {
   return manualFirmware ?? bundledFirmware;
+}
+
+// --- Sprite editor state ---
+const spriteFrames = [
+  new Uint8Array(SPRITE_W * SPRITE_H), // A
+  new Uint8Array(SPRITE_W * SPRITE_H), // B
+  new Uint8Array(SPRITE_W * SPRITE_H), // KO
+];
+let activeSpriteFrame = 0;
+let activeTool = "pencil"; // 'pencil' | 'eraser'
+let drawing = false;
+
+function setActiveTab(idx) {
+  activeSpriteFrame = idx;
+  const tabs = [ui.spriteTabA, ui.spriteTabB, ui.spriteTabKO];
+  tabs.forEach((el, i) => {
+    if (!el) return;
+    el.classList.toggle("is-active", i === idx);
+    el.setAttribute("aria-selected", i === idx ? "true" : "false");
+  });
+  drawSpriteEditor();
+}
+
+function setActiveTool(tool) {
+  activeTool = tool;
+  ui.toolPencil?.classList.toggle("is-active", tool === "pencil");
+  ui.toolEraser?.classList.toggle("is-active", tool === "eraser");
+}
+
+function spriteZoom() {
+  const z = Math.max(5, Math.min(24, parseInt(ui.spriteZoom?.value ?? "8", 10)));
+  if (ui.spriteZoomValue) ui.spriteZoomValue.textContent = `${z}×`;
+  if (ui.spriteCanvas) {
+    ui.spriteCanvas.style.width = `${SPRITE_W * z}px`;
+    ui.spriteCanvas.style.height = `${SPRITE_H * z}px`;
+  }
+  drawSpriteEditor();
+}
+
+function spriteIndexFromEvent(evt) {
+  const canvas = ui.spriteCanvas;
+  if (!canvas) return null;
+  const rect = canvas.getBoundingClientRect();
+  const x = Math.floor(((evt.clientX - rect.left) / rect.width) * SPRITE_W);
+  const y = Math.floor(((evt.clientY - rect.top) / rect.height) * SPRITE_H);
+  if (x < 0 || x >= SPRITE_W || y < 0 || y >= SPRITE_H) return null;
+  return { x, y, idx: y * SPRITE_W + x };
+}
+
+function applyToolAt(x, y, idx) {
+  const buf = spriteFrames[activeSpriteFrame];
+  const v = activeTool === "pencil" ? 1 : 0;
+  if (buf[idx] === v) return;
+  buf[idx] = v;
+  drawSpriteEditor();
+}
+
+function drawSpriteEditor() {
+  const canvas = ui.spriteCanvas;
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  // logical canvas is always 80x80? We use actual pixel size 16x16 in data,
+  // and draw scaled to canvas width/height.
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const buf = spriteFrames[activeSpriteFrame];
+  const sx = canvas.width / SPRITE_W;
+  const sy = canvas.height / SPRITE_H;
+
+  // pixels
+  ctx.fillStyle = "#fff";
+  for (let y = 0; y < SPRITE_H; y++) {
+    for (let x = 0; x < SPRITE_W; x++) {
+      if (buf[y * SPRITE_W + x]) {
+        ctx.fillRect(x * sx, y * sy, sx, sy);
+      }
+    }
+  }
+
+  // grid lines (subtle)
+  ctx.strokeStyle = "rgba(240,240,240,0.18)";
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= SPRITE_W; x++) {
+    ctx.beginPath();
+    ctx.moveTo(x * sx + 0.5, 0);
+    ctx.lineTo(x * sx + 0.5, canvas.height);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= SPRITE_H; y++) {
+    ctx.beginPath();
+    ctx.moveTo(0, y * sy + 0.5);
+    ctx.lineTo(canvas.width, y * sy + 0.5);
+    ctx.stroke();
+  }
+}
+
+function packSpriteFramesToDeviceBytes() {
+  // Firmware expects 16x16 1bpp, MSB first in each byte, rows contiguous.
+  const out = new Uint8Array(SPRITE_TOTAL);
+  for (let f = 0; f < SPRITE_FRAMES; f++) {
+    const src = spriteFrames[f];
+    const base = f * SPRITE_BYTES;
+    for (let row = 0; row < SPRITE_H; row++) {
+      for (let byte = 0; byte < 2; byte++) {
+        let v = 0;
+        for (let bit = 0; bit < 8; bit++) {
+          const col = byte * 8 + bit;
+          const on = src[row * SPRITE_W + col] ? 1 : 0;
+          v |= on ? (0x80 >> bit) : 0;
+        }
+        out[base + row * 2 + byte] = v;
+      }
+    }
+  }
+  return out;
+}
+
+function drawBitmap1bpp(ctx, bmpBytes, x, y, w, h, scale) {
+  ctx.fillStyle = "#fff";
+  const bytesPerRow = Math.ceil(w / 8);
+  for (let row = 0; row < h; row++) {
+    for (let col = 0; col < w; col++) {
+      const b = bmpBytes[row * bytesPerRow + (col >> 3)];
+      const on = (b & (0x80 >> (col & 7))) !== 0;
+      if (!on) continue;
+      ctx.fillRect(x + col * scale, y + row * scale, scale, scale);
+    }
+  }
+}
+
+// --- Preview animation (approximate device sequence) ---
+let previewRunning = true;
+let previewStartMs = performance.now();
+
+function renderPreview(nowMs) {
+  const canvas = ui.previewCanvas;
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  const W = 128;
+  const H = 64;
+  const S = PREVIEW_SCALE;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, W * S, H * S);
+
+  const t = (nowMs - previewStartMs) / 1000;
+
+  // Sequence:
+  // 0..3.0s: move left-right with 2-frame animation
+  // 3.0..4.2s: KO fall to bottom
+  // 4.2..5.0s: heart appear near bottom
+  // 5.0..6.2s: return to center
+  // loop
+  const loop = 6.2;
+  const lt = ((t % loop) + loop) % loop;
+
+  const centerX = Math.floor((W - SPRITE_W) / 2);
+  const leftX = centerX - 16;
+  const rightX = centerX + 16;
+  const centerY = Math.floor((H - SPRITE_H) / 2);
+  const bottomY = H - SPRITE_H;
+
+  let x = centerX;
+  let y = centerY;
+  let frame = 0;
+  let showHeart = false;
+
+  if (lt < 3.0) {
+    const phase = lt / 3.0;
+    // ping-pong
+    const ping = phase < 0.5 ? phase * 2 : (1 - phase) * 2;
+    x = Math.round(leftX + (rightX - leftX) * ping);
+    y = centerY;
+    frame = Math.floor((lt * 5) % 2); // similar to device 200ms-ish
+  } else if (lt < 4.2) {
+    x = centerX;
+    const p = (lt - 3.0) / 1.2;
+    y = Math.round(centerY + (bottomY - centerY) * Math.min(1, Math.max(0, p)));
+    frame = 2; // KO
+  } else if (lt < 5.0) {
+    x = centerX;
+    y = bottomY;
+    frame = 2;
+    showHeart = true;
+  } else {
+    x = centerX;
+    const p = (lt - 5.0) / 1.2;
+    y = Math.round(bottomY + (centerY - bottomY) * Math.min(1, Math.max(0, p)));
+    frame = 0;
+  }
+
+  const packed = packSpriteFramesToDeviceBytes();
+  const frameBytes = packed.subarray(frame * SPRITE_BYTES, frame * SPRITE_BYTES + SPRITE_BYTES);
+  drawBitmap1bpp(ctx, frameBytes, x * S, y * S, SPRITE_W, SPRITE_H, S);
+
+  if (showHeart) {
+    // simple 7x7 heart bitmap similar size; not exact but close.
+    const heart = [
+      0x6c, 0x9e, 0xbe, 0xfe, 0x7c, 0x38, 0x10,
+    ];
+    drawBitmap1bpp(ctx, new Uint8Array(heart), (x + 4) * S, (y - 10) * S, 7, 7, S);
+  }
+}
+
+function previewLoop(nowMs) {
+  if (!previewRunning) return;
+  renderPreview(nowMs);
+  requestAnimationFrame(previewLoop);
+}
+
+// --- Sprite transfer ---
+async function writeToPort(port, bytes) {
+  const writer = port.writable.getWriter();
+  try {
+    await writer.write(bytes);
+  } finally {
+    writer.releaseLock();
+  }
+}
+
+async function readLineFromPort(port, timeoutMs = 1200) {
+  const reader = port.readable.getReader();
+  const start = performance.now();
+  let buf = "";
+  try {
+    while (performance.now() - start < timeoutMs) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      buf += new TextDecoder().decode(value);
+      const idx = buf.indexOf("\n");
+      if (idx >= 0) return buf.slice(0, idx + 1);
+    }
+    return buf;
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+async function transferSpritesToDevice() {
+  if (!supportsSerial()) {
+    setMiniStatus("Web Serial 非対応", "error");
+    return;
+  }
+
+  setMiniStatus("ポート選択…", "active");
+  const port = await navigator.serial.requestPort({ filters: USB_FILTERS });
+
+  try {
+    await port.open({
+      baudRate: 115200,
+      dataBits: 8,
+      stopBits: 1,
+      parity: "none",
+      bufferSize: 255,
+      flowControl: "none",
+    });
+
+    const payload = packSpriteFramesToDeviceBytes();
+    const header = new Uint8Array(4 + 1 + 2);
+    header.set(SPRITE_MAGIC_SET, 0);
+    header[4] = SPRITE_PROTO_VER;
+    header[5] = SPRITE_TOTAL & 0xff;
+    header[6] = (SPRITE_TOTAL >> 8) & 0xff;
+
+    const crc = checksumCalcBytes(payload, 0);
+    const crcBytes = new Uint8Array([crc & 0xff, (crc >> 8) & 0xff]);
+
+    const frame = new Uint8Array(header.length + payload.length + crcBytes.length);
+    frame.set(header, 0);
+    frame.set(payload, header.length);
+    frame.set(crcBytes, header.length + payload.length);
+
+    setMiniStatus("転送中…", "active");
+    await writeToPort(port, frame);
+
+    const line = await readLineFromPort(port);
+    if (line.startsWith("OK")) {
+      setMiniStatus("転送完了", "success");
+      log("キャラクターを転送しました", "success");
+    } else {
+      setMiniStatus("転送失敗", "error");
+      log(`キャラクター転送に失敗: ${line || "no response"}`, "error");
+    }
+  } finally {
+    try {
+      await port.close();
+    } catch {
+      // ignore
+    }
+  }
+}
+
+async function resetSpritesOnDevice() {
+  if (!supportsSerial()) {
+    setMiniStatus("Web Serial 非対応", "error");
+    return;
+  }
+
+  setMiniStatus("ポート選択…", "active");
+  const port = await navigator.serial.requestPort({ filters: USB_FILTERS });
+
+  try {
+    await port.open({
+      baudRate: 115200,
+      dataBits: 8,
+      stopBits: 1,
+      parity: "none",
+      bufferSize: 64,
+      flowControl: "none",
+    });
+
+    setMiniStatus("リセット中…", "active");
+    await writeToPort(port, SPRITE_MAGIC_RESET);
+    const line = await readLineFromPort(port);
+    if (line.startsWith("OK")) {
+      setMiniStatus("デフォルトへ戻しました", "success");
+      log("キャラクターをデフォルトに戻しました", "success");
+    } else {
+      setMiniStatus("リセット失敗", "error");
+      log(`キャラクターリセットに失敗: ${line || "no response"}`, "error");
+    }
+  } finally {
+    try {
+      await port.close();
+    } catch {
+      // ignore
+    }
+  }
 }
 
 function formatFirmwareFooter(sizeText) {
@@ -663,7 +1034,65 @@ function init() {
   ui.manualFile.addEventListener("change", onManualFileSelected);
   ui.clearManualBtn.addEventListener("click", clearManualSelection);
 
+  // Sprite editor bindings
+  ui.spriteTabA?.addEventListener("click", () => setActiveTab(0));
+  ui.spriteTabB?.addEventListener("click", () => setActiveTab(1));
+  ui.spriteTabKO?.addEventListener("click", () => setActiveTab(2));
+  ui.toolPencil?.addEventListener("click", () => setActiveTool("pencil"));
+  ui.toolEraser?.addEventListener("click", () => setActiveTool("eraser"));
+  ui.spriteZoom?.addEventListener("input", spriteZoom);
+
+  ui.spriteCanvas?.addEventListener("pointerdown", (evt) => {
+    drawing = true;
+    ui.spriteCanvas.setPointerCapture(evt.pointerId);
+    const hit = spriteIndexFromEvent(evt);
+    if (hit) applyToolAt(hit.x, hit.y, hit.idx);
+  });
+  ui.spriteCanvas?.addEventListener("pointermove", (evt) => {
+    if (!drawing) return;
+    const hit = spriteIndexFromEvent(evt);
+    if (hit) applyToolAt(hit.x, hit.y, hit.idx);
+  });
+  ui.spriteCanvas?.addEventListener("pointerup", () => {
+    drawing = false;
+  });
+  ui.spriteCanvas?.addEventListener("pointercancel", () => {
+    drawing = false;
+  });
+
+  ui.sendSpriteBtn?.addEventListener("click", async () => {
+    try {
+      await transferSpritesToDevice();
+    } catch (e) {
+      setMiniStatus("転送失敗", "error");
+      log(`キャラクター転送に失敗: ${e?.message ?? e}`, "error");
+    }
+  });
+  ui.resetSpriteBtn?.addEventListener("click", async () => {
+    try {
+      await resetSpritesOnDevice();
+    } catch (e) {
+      setMiniStatus("リセット失敗", "error");
+      log(`キャラクターリセットに失敗: ${e?.message ?? e}`, "error");
+    }
+  });
+
+  ui.togglePreviewBtn?.addEventListener("click", () => {
+    previewRunning = !previewRunning;
+    if (previewRunning) {
+      previewStartMs = performance.now();
+      requestAnimationFrame(previewLoop);
+    }
+  });
+
   loadBundledFirmware();
+
+  // Initialize sprite UI
+  setActiveTab(0);
+  setActiveTool("pencil");
+  spriteZoom();
+  setMiniStatus("未転送");
+  requestAnimationFrame(previewLoop);
 }
 
 init();

@@ -57,6 +57,7 @@ body {
   grid-template-areas:
     "steps  steps"
     "action log"
+    "sprite sprite"
     "backup backup"
     "footer footer";
 }
@@ -70,8 +71,144 @@ body {
 .cell--steps { grid-area: steps; }
 .cell--action { grid-area: action; border-right: 1px solid var(--line); }
 .cell--log { grid-area: log; }
+.cell--sprite { grid-area: sprite; }
 .cell--backup { grid-area: backup; }
 .cell--footer { grid-area: footer; }
+
+.sprite-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.sprite-pane {
+  border: 1px solid var(--line);
+  padding: 10px;
+}
+
+.sprite-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.tab {
+  border: 1px solid var(--line);
+  background: var(--base);
+  color: var(--ink);
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.tab.is-active {
+  background: var(--ink);
+  color: var(--base);
+}
+
+.sprite-canvas-wrap {
+  display: grid;
+  place-items: center;
+  margin-bottom: 10px;
+}
+
+.sprite-canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: #000;
+  border: 1px solid var(--line);
+  width: 160px; /* JS で zoom に合わせて上書き */
+  height: 160px;
+  touch-action: none;
+}
+
+.sprite-tools {
+  display: grid;
+  grid-template-columns: auto auto auto 1fr auto;
+  gap: 6px 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.tool {
+  border: 1px solid var(--line);
+  background: var(--base);
+  color: var(--ink);
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.tool.is-active {
+  background: var(--ink);
+  color: var(--base);
+}
+
+.zoom-label {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.zoom-value {
+  font-family: var(--mono);
+  font-size: 11px;
+  text-align: right;
+}
+
+.sprite-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  align-items: center;
+}
+
+.sprite-actions .btn-primary,
+.sprite-actions .btn-secondary {
+  width: 100%;
+  margin-top: 0;
+}
+
+.mini-status {
+  grid-column: 1 / -1;
+  border: 1px solid var(--line);
+  padding: 6px 8px;
+  font-size: 11px;
+}
+
+.preview-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.preview-label {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.preview-wrap {
+  display: grid;
+  place-items: center;
+  margin-bottom: 10px;
+}
+
+.preview-canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: #000;
+  border: 1px solid var(--line);
+  width: 640px;
+  height: 320px;
+  max-width: 100%;
+  height: auto;
+}
 
 .cell h2 {
   margin: 0 0 8px;
@@ -361,12 +498,17 @@ strong {
       "steps"
       "action"
       "log"
+      "sprite"
       "backup"
       "footer";
   }
 
   .cell--action {
     border-right: none;
+  }
+
+  .sprite-grid {
+    grid-template-columns: 1fr;
   }
 
   .cell {
