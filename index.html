@@ -6,6 +6,7 @@
   <title>ToJ-002 Firmware Updater</title>
   <meta name="description" content="ToJ-002 (XIAO SAMD21) ファームウェアをブラウザから直接書き込みます。">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 </head>
 <body>
   <div class="page">
@@ -84,7 +85,7 @@
       </section>
 
       <section class="cell cell--sprite" aria-labelledby="sprite-title">
-        <h2 id="sprite-title">キャラクター</h2>
+        <h2 id="sprite-title">キャラクターデザインツール</h2>
 
         <div class="sprite-grid">
           <div class="sprite-pane">
@@ -94,17 +95,54 @@
               <button id="spriteTabKO" type="button" class="tab" role="tab" aria-selected="false">Down</button>
             </div>
 
-            <div class="sprite-canvas-wrap">
-              <canvas id="spriteCanvas" width="80" height="80" class="sprite-canvas" aria-label="16x16 ドット絵エディタ"></canvas>
-            </div>
+            <div class="editor-layout">
+              <div class="layer-list" aria-label="レイヤー">
+                <div class="layer-item">
+                  <button type="button" class="layer-vis is-visible" id="layerVis0" aria-label="レイヤー1 表示" aria-pressed="true" title="表示 / 非表示"><i class="fa-solid fa-eye"></i></button>
+                  <button id="spriteLayer0" type="button" class="tab layer-tab is-active" role="tab" aria-selected="true" title="レイヤー1（下）">Layer 1</button>
+                </div>
+                <div class="layer-item">
+                  <button type="button" class="layer-vis is-visible" id="layerVis1" aria-label="レイヤー2 表示" aria-pressed="true" title="表示 / 非表示"><i class="fa-solid fa-eye"></i></button>
+                  <button id="spriteLayer1" type="button" class="tab layer-tab" role="tab" aria-selected="false" title="レイヤー2">Layer 2</button>
+                </div>
+                <div class="layer-item">
+                  <button type="button" class="layer-vis is-visible" id="layerVis2" aria-label="レイヤー3 表示" aria-pressed="true" title="表示 / 非表示"><i class="fa-solid fa-eye"></i></button>
+                  <button id="spriteLayer2" type="button" class="tab layer-tab" role="tab" aria-selected="false" title="レイヤー3（上）">Layer3</button>
+                </div>
+              </div>
 
-            <div class="sprite-tools">
-              <button id="toolPencil" type="button" class="tool is-active">Pencil</button>
-              <button id="toolEraser" type="button" class="tool">Eraser</button>
+              <div class="sprite-canvas-wrap">
+                <canvas id="spriteCanvas" width="128" height="128" class="sprite-canvas" aria-label="16x16 ドット絵エディタ"></canvas>
+              </div>
 
-              <label class="zoom-label" for="spriteZoom">Zoom</label>
-              <input id="spriteZoom" type="range" min="5" max="24" value="8" step="1">
-              <span id="spriteZoomValue" class="zoom-value">8×</span>
+              <div class="tool-bar" id="spriteToolBar" aria-label="描画ツール">
+                <div class="tool-bar__row">
+                  <button type="button" class="tool-btn" data-tool="select" title="選択" aria-label="選択"><i class="fa-regular fa-object-group"></i></button>
+                  <button type="button" class="tool-btn" data-tool="move" title="移動（未選択時はレイヤー全体）" aria-label="移動"><i class="fa-solid fa-arrows-up-down-left-right"></i></button>
+                  <button type="button" class="tool-btn is-active" data-tool="pencil" title="鉛筆" aria-label="鉛筆"><i class="fa-solid fa-pencil"></i></button>
+                  <button type="button" class="tool-btn" data-tool="eraser" title="消しゴム" aria-label="消しゴム"><i class="fa-solid fa-eraser"></i></button>
+                  <button type="button" class="tool-btn" data-tool="fill" title="塗りつぶし" aria-label="塗りつぶし"><i class="fa-solid fa-fill-drip"></i></button>
+                  <button type="button" class="tool-btn" data-tool="line" title="直線" aria-label="直線"><i class="fa-solid fa-slash"></i></button>
+                </div>
+                <div class="tool-bar__row">
+                  <button type="button" class="tool-btn tool-btn--action" id="toolCopy" title="コピー (Ctrl+C)" aria-label="コピー" disabled><i class="fa-regular fa-copy"></i></button>
+                  <button type="button" class="tool-btn tool-btn--action" id="toolCut" title="カット (Ctrl+X)" aria-label="カット" disabled><i class="fa-solid fa-scissors"></i></button>
+                  <button type="button" class="tool-btn tool-btn--action" id="toolPaste" title="ペースト (Ctrl+V) — 上位レイヤーへ" aria-label="ペースト" disabled><i class="fa-regular fa-paste"></i></button>
+                  <button type="button" class="tool-btn tool-btn--action" id="toolRotateCW" title="右回転" aria-label="右回転" disabled><i class="fa-solid fa-arrow-rotate-right"></i></button>
+                  <button type="button" class="tool-btn tool-btn--action" id="toolFlipH" title="左右反転" aria-label="左右反転" disabled><i class="fa-solid fa-arrows-left-right"></i></button>
+                  <button type="button" class="tool-btn tool-btn--action" id="toolFlipV" title="上下反転" aria-label="上下反転" disabled><i class="fa-solid fa-arrows-up-down"></i></button>
+                </div>
+              </div>
+
+              <div class="editor-options">
+                <label class="option-label" for="brushSize">Brush</label>
+                <input id="brushSize" type="range" min="1" max="4" value="1" step="1">
+                <span id="brushSizeValue" class="option-value">1px</span>
+
+                <label class="option-label" for="spriteZoom">Zoom</label>
+                <input id="spriteZoom" type="range" min="5" max="24" value="15" step="1">
+                <span id="spriteZoomValue" class="option-value">15×</span>
+              </div>
             </div>
 
             <div class="sprite-actions">

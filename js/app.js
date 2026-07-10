@@ -6,6 +6,17 @@
 import { SamBA } from "https://esm.sh/bossa-web@0.9.7";
 import { Device, Family } from "https://esm.sh/bossa-web@0.9.7";
 import { Flasher } from "https://esm.sh/bossa-web@0.9.7";
+import {
+  SPRITE_W,
+  SPRITE_H,
+  SPRITE_BYTES,
+  SPRITE_FRAMES,
+  SPRITE_TOTAL,
+  initSpriteEditor,
+  drawSpriteEditor,
+  packSpriteFramesToDeviceBytes,
+  unpackDeviceBytesToSpriteFrames,
+} from "./sprite-editor.js";
 
 /**
  * Windows の Web Serial では flowControl:'hardware' が失敗することがある。
@@ -77,11 +88,6 @@ const BOOTLOADER_SIZE = 0x2000;
 const SPRITE_MAGIC_SET = new Uint8Array([0x54, 0x4f, 0x4a, 0x53]); // 'TOJS'
 const SPRITE_MAGIC_RESET = new Uint8Array([0x54, 0x4f, 0x4a, 0x44]); // 'TOJD'
 const SPRITE_PROTO_VER = 1;
-const SPRITE_W = 16;
-const SPRITE_H = 16;
-const SPRITE_BYTES = 32;
-const SPRITE_FRAMES = 3; // A, B, KO
-const SPRITE_TOTAL = SPRITE_BYTES * SPRITE_FRAMES;
 const PREVIEW_SCALE = 5;
 
 const USB_FILTERS = [
@@ -129,8 +135,21 @@ const ui = {
   spriteTabA: document.getElementById("spriteTabA"),
   spriteTabB: document.getElementById("spriteTabB"),
   spriteTabKO: document.getElementById("spriteTabKO"),
-  toolPencil: document.getElementById("toolPencil"),
-  toolEraser: document.getElementById("toolEraser"),
+  spriteLayer0: document.getElementById("spriteLayer0"),
+  spriteLayer1: document.getElementById("spriteLayer1"),
+  spriteLayer2: document.getElementById("spriteLayer2"),
+  layerVis0: document.getElementById("layerVis0"),
+  layerVis1: document.getElementById("layerVis1"),
+  layerVis2: document.getElementById("layerVis2"),
+  toolBar: document.getElementById("spriteToolBar"),
+  toolCopy: document.getElementById("toolCopy"),
+  toolCut: document.getElementById("toolCut"),
+  toolPaste: document.getElementById("toolPaste"),
+  toolRotateCW: document.getElementById("toolRotateCW"),
+  toolFlipH: document.getElementById("toolFlipH"),
+  toolFlipV: document.getElementById("toolFlipV"),
+  brushSize: document.getElementById("brushSize"),
+  brushSizeValue: document.getElementById("brushSizeValue"),
   spriteZoom: document.getElementById("spriteZoom"),
   spriteZoomValue: document.getElementById("spriteZoomValue"),
   sendSpriteBtn: document.getElementById("sendSpriteBtn"),
@@ -187,145 +206,6 @@ function setMiniStatus(text, tone = "default") {
 
 function activeFirmware() {
   return manualFirmware ?? bundledFirmware;
-}
-
-// --- Sprite editor state ---
-const spriteFrames = [
-  new Uint8Array(SPRITE_W * SPRITE_H), // A
-  new Uint8Array(SPRITE_W * SPRITE_H), // B
-  new Uint8Array(SPRITE_W * SPRITE_H), // KO
-];
-let activeSpriteFrame = 0;
-let activeTool = "pencil"; // 'pencil' | 'eraser'
-let drawing = false;
-
-function setActiveTab(idx) {
-  activeSpriteFrame = idx;
-  const tabs = [ui.spriteTabA, ui.spriteTabB, ui.spriteTabKO];
-  tabs.forEach((el, i) => {
-    if (!el) return;
-    el.classList.toggle("is-active", i === idx);
-    el.setAttribute("aria-selected", i === idx ? "true" : "false");
-  });
-  drawSpriteEditor();
-}
-
-function setActiveTool(tool) {
-  activeTool = tool;
-  ui.toolPencil?.classList.toggle("is-active", tool === "pencil");
-  ui.toolEraser?.classList.toggle("is-active", tool === "eraser");
-}
-
-function spriteZoom() {
-  const z = Math.max(5, Math.min(24, parseInt(ui.spriteZoom?.value ?? "8", 10)));
-  if (ui.spriteZoomValue) ui.spriteZoomValue.textContent = `${z}×`;
-  if (ui.spriteCanvas) {
-    ui.spriteCanvas.style.width = `${SPRITE_W * z}px`;
-    ui.spriteCanvas.style.height = `${SPRITE_H * z}px`;
-  }
-  drawSpriteEditor();
-}
-
-function spriteIndexFromEvent(evt) {
-  const canvas = ui.spriteCanvas;
-  if (!canvas) return null;
-  const rect = canvas.getBoundingClientRect();
-  const x = Math.floor(((evt.clientX - rect.left) / rect.width) * SPRITE_W);
-  const y = Math.floor(((evt.clientY - rect.top) / rect.height) * SPRITE_H);
-  if (x < 0 || x >= SPRITE_W || y < 0 || y >= SPRITE_H) return null;
-  return { x, y, idx: y * SPRITE_W + x };
-}
-
-function applyToolAt(x, y, idx) {
-  const buf = spriteFrames[activeSpriteFrame];
-  const v = activeTool === "pencil" ? 1 : 0;
-  if (buf[idx] === v) return;
-  buf[idx] = v;
-  drawSpriteEditor();
-}
-
-function drawSpriteEditor() {
-  const canvas = ui.spriteCanvas;
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-
-  // logical canvas is always 80x80? We use actual pixel size 16x16 in data,
-  // and draw scaled to canvas width/height.
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "#000";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  const buf = spriteFrames[activeSpriteFrame];
-  const sx = canvas.width / SPRITE_W;
-  const sy = canvas.height / SPRITE_H;
-
-  // pixels
-  ctx.fillStyle = "#fff";
-  for (let y = 0; y < SPRITE_H; y++) {
-    for (let x = 0; x < SPRITE_W; x++) {
-      if (buf[y * SPRITE_W + x]) {
-        ctx.fillRect(x * sx, y * sy, sx, sy);
-      }
-    }
-  }
-
-  // grid lines (subtle)
-  ctx.strokeStyle = "rgba(240,240,240,0.18)";
-  ctx.lineWidth = 1;
-  for (let x = 0; x <= SPRITE_W; x++) {
-    ctx.beginPath();
-    ctx.moveTo(x * sx + 0.5, 0);
-    ctx.lineTo(x * sx + 0.5, canvas.height);
-    ctx.stroke();
-  }
-  for (let y = 0; y <= SPRITE_H; y++) {
-    ctx.beginPath();
-    ctx.moveTo(0, y * sy + 0.5);
-    ctx.lineTo(canvas.width, y * sy + 0.5);
-    ctx.stroke();
-  }
-}
-
-function packSpriteFramesToDeviceBytes() {
-  // Firmware expects 16x16 1bpp, MSB first in each byte, rows contiguous.
-  const out = new Uint8Array(SPRITE_TOTAL);
-  for (let f = 0; f < SPRITE_FRAMES; f++) {
-    const src = spriteFrames[f];
-    const base = f * SPRITE_BYTES;
-    for (let row = 0; row < SPRITE_H; row++) {
-      for (let byte = 0; byte < 2; byte++) {
-        let v = 0;
-        for (let bit = 0; bit < 8; bit++) {
-          const col = byte * 8 + bit;
-          const on = src[row * SPRITE_W + col] ? 1 : 0;
-          v |= on ? (0x80 >> bit) : 0;
-        }
-        out[base + row * 2 + byte] = v;
-      }
-    }
-  }
-  return out;
-}
-
-function unpackDeviceBytesToSpriteFrames(bytes) {
-  if (bytes.length !== SPRITE_TOTAL) {
-    throw new Error(`スプライトデータの長さが不正です（${bytes.length} バイト）`);
-  }
-
-  for (let f = 0; f < SPRITE_FRAMES; f++) {
-    const dst = spriteFrames[f];
-    const base = f * SPRITE_BYTES;
-    for (let row = 0; row < SPRITE_H; row++) {
-      for (let byte = 0; byte < 2; byte++) {
-        const v = bytes[base + row * 2 + byte];
-        for (let bit = 0; bit < 8; bit++) {
-          const col = byte * 8 + bit;
-          dst[row * SPRITE_W + col] = (v & (0x80 >> bit)) ? 1 : 0;
-        }
-      }
-    }
-  }
 }
 
 function bytesToBase64Url(bytes) {
@@ -419,11 +299,41 @@ function drawBitmap1bpp(ctx, bmpBytes, x, y, w, h, scale) {
   }
 }
 
-// --- Preview animation (approximate device sequence) ---
+function drawBitmapRotated(ctx, bmpBytes, x, y, w, h, scale, deg) {
+  if (Math.abs(deg) < 0.5) {
+    drawBitmap1bpp(ctx, bmpBytes, x, y, w, h, scale);
+    return;
+  }
+  const cx = x + (w * scale) / 2;
+  const cy = y + (h * scale) / 2;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate((deg * Math.PI) / 180);
+  ctx.translate(-cx, -cy);
+  drawBitmap1bpp(ctx, bmpBytes, x, y, w, h, scale);
+  ctx.restore();
+}
+
+// --- Preview animation (device sequence @ default BPM 85) ---
 let previewRunning = true;
 let previewStartMs = performance.now();
 
+const PREVIEW_BPM = 85;
+const PREVIEW_BEAT = 60 / PREVIEW_BPM;
 const PREVIEW_MOVE_DURATION = 3.0;
+const T_PREVIEW_KO = PREVIEW_MOVE_DURATION;
+const T_PREVIEW_BEAT_WAIT = T_PREVIEW_KO + PREVIEW_BEAT;
+const T_PREVIEW_FALL = T_PREVIEW_BEAT_WAIT + PREVIEW_BEAT * 2;
+const T_PREVIEW_LYING = T_PREVIEW_FALL + PREVIEW_BEAT * 2;
+const T_PREVIEW_HEART_WAIT = T_PREVIEW_LYING + PREVIEW_BEAT;
+const T_PREVIEW_HEART_FALL = T_PREVIEW_HEART_WAIT + 0.5;
+const T_PREVIEW_HEART_VANISH = T_PREVIEW_HEART_FALL + 0.2;
+const T_PREVIEW_REBORN = T_PREVIEW_HEART_VANISH + PREVIEW_BEAT * 2;
+const PREVIEW_LOOP = T_PREVIEW_REBORN;
+
+const PREVIEW_HEART = new Uint8Array([0x6c, 0x9e, 0xbe, 0xfe, 0x7c, 0x38, 0x10]);
+const PREVIEW_HEART_W = 7;
+const PREVIEW_HEART_H = 7;
 
 function previewMoveX(lt, centerX, leftX, rightX) {
   if (lt >= PREVIEW_MOVE_DURATION) return centerX;
@@ -457,58 +367,83 @@ function renderPreview(nowMs) {
   ctx.fillRect(0, 0, W * S, H * S);
 
   const t = (nowMs - previewStartMs) / 1000;
-
-  // Sequence:
-  // 0..3.0s: center → left → center → right → center (2-frame animation)
-  // 3.0..4.2s: Down frame at center, fall to bottom
-  // 4.2..5.0s: heart appear near bottom
-  // 5.0..6.2s: return to center
-  // loop
-  const loop = 6.2;
-  const lt = ((t % loop) + loop) % loop;
+  const lt = ((t % PREVIEW_LOOP) + PREVIEW_LOOP) % PREVIEW_LOOP;
 
   const centerX = Math.floor((W - SPRITE_W) / 2);
   const leftX = centerX - 16;
   const rightX = centerX + 16;
   const centerY = Math.floor((H - SPRITE_H) / 2);
   const bottomY = H - SPRITE_H;
+  const koFallStartY = centerY;
 
   let x = centerX;
   let y = centerY;
   let frame = 0;
+  let rotation = 0;
   let showHeart = false;
+  let heartY = 0;
+  let heartVanishStep = 0;
 
-  if (lt < PREVIEW_MOVE_DURATION) {
+  if (lt < T_PREVIEW_KO) {
     x = Math.round(previewMoveX(lt, centerX, leftX, rightX));
     y = centerY;
     frame = Math.floor((lt * 5) % 2);
-  } else if (lt < 4.2) {
+  } else if (lt < T_PREVIEW_BEAT_WAIT) {
     x = centerX;
-    const p = (lt - 3.0) / 1.2;
-    y = Math.round(centerY + (bottomY - centerY) * Math.min(1, Math.max(0, p)));
-    frame = 2; // KO
-  } else if (lt < 5.0) {
+    y = koFallStartY;
+    frame = 2;
+    rotation = 90;
+  } else if (lt < T_PREVIEW_FALL) {
+    x = centerX;
+    const p = (lt - T_PREVIEW_BEAT_WAIT) / (PREVIEW_BEAT * 2);
+    y = Math.round(koFallStartY + (bottomY - koFallStartY) * Math.min(1, Math.max(0, p)));
+    frame = 2;
+    rotation = 90;
+  } else if (lt < T_PREVIEW_LYING) {
     x = centerX;
     y = bottomY;
     frame = 2;
+    rotation = 90;
+  } else if (lt < T_PREVIEW_HEART_WAIT) {
+    x = centerX;
+    y = bottomY;
+    frame = 2;
+    rotation = 90;
     showHeart = true;
+    heartY = y - PREVIEW_HEART_H - 7;
+  } else if (lt < T_PREVIEW_HEART_FALL) {
+    x = centerX;
+    y = bottomY;
+    frame = 2;
+    rotation = 90;
+    showHeart = true;
+    const heartStart = y - PREVIEW_HEART_H - 7;
+    const heartTarget = y + (SPRITE_H - PREVIEW_HEART_H) * 0.5;
+    const p = (lt - T_PREVIEW_HEART_WAIT) / (T_PREVIEW_HEART_FALL - T_PREVIEW_HEART_WAIT);
+    heartY = heartStart + (heartTarget - heartStart) * Math.min(1, Math.max(0, p));
+  } else if (lt < T_PREVIEW_HEART_VANISH) {
+    x = centerX;
+    y = bottomY;
+    frame = 2;
+    rotation = 90;
+    heartY = y + (SPRITE_H - PREVIEW_HEART_H) * 0.5;
+    heartVanishStep = Math.min(3, Math.floor((lt - T_PREVIEW_HEART_FALL) / 0.05));
+    showHeart = heartVanishStep < 3;
   } else {
     x = centerX;
-    const p = (lt - 5.0) / 1.2;
-    y = Math.round(bottomY + (centerY - bottomY) * Math.min(1, Math.max(0, p)));
-    frame = 0;
+    frame = 2;
+    rotation = 0;
+    const p = (lt - T_PREVIEW_HEART_VANISH) / (PREVIEW_BEAT * 2);
+    y = Math.round(bottomY + (koFallStartY - bottomY) * Math.min(1, Math.max(0, p)));
   }
 
   const packed = packSpriteFramesToDeviceBytes();
   const frameBytes = packed.subarray(frame * SPRITE_BYTES, frame * SPRITE_BYTES + SPRITE_BYTES);
-  drawBitmap1bpp(ctx, frameBytes, x * S, y * S, SPRITE_W, SPRITE_H, S);
+  drawBitmapRotated(ctx, frameBytes, x * S, y * S, SPRITE_W, SPRITE_H, S, rotation);
 
   if (showHeart) {
-    // simple 7x7 heart bitmap similar size; not exact but close.
-    const heart = [
-      0x6c, 0x9e, 0xbe, 0xfe, 0x7c, 0x38, 0x10,
-    ];
-    drawBitmap1bpp(ctx, new Uint8Array(heart), (x + 4) * S, (y - 10) * S, 7, 7, S);
+    const heartX = Math.round(x + SPRITE_W / 2 - PREVIEW_HEART_W / 2);
+    drawBitmap1bpp(ctx, PREVIEW_HEART, heartX * S, Math.round(heartY) * S, PREVIEW_HEART_W, PREVIEW_HEART_H, S);
   }
 }
 
@@ -1154,29 +1089,10 @@ function init() {
   ui.clearManualBtn.addEventListener("click", clearManualSelection);
 
   // Sprite editor bindings
-  ui.spriteTabA?.addEventListener("click", () => setActiveTab(0));
-  ui.spriteTabB?.addEventListener("click", () => setActiveTab(1));
-  ui.spriteTabKO?.addEventListener("click", () => setActiveTab(2));
-  ui.toolPencil?.addEventListener("click", () => setActiveTool("pencil"));
-  ui.toolEraser?.addEventListener("click", () => setActiveTool("eraser"));
-  ui.spriteZoom?.addEventListener("input", spriteZoom);
-
-  ui.spriteCanvas?.addEventListener("pointerdown", (evt) => {
-    drawing = true;
-    ui.spriteCanvas.setPointerCapture(evt.pointerId);
-    const hit = spriteIndexFromEvent(evt);
-    if (hit) applyToolAt(hit.x, hit.y, hit.idx);
-  });
-  ui.spriteCanvas?.addEventListener("pointermove", (evt) => {
-    if (!drawing) return;
-    const hit = spriteIndexFromEvent(evt);
-    if (hit) applyToolAt(hit.x, hit.y, hit.idx);
-  });
-  ui.spriteCanvas?.addEventListener("pointerup", () => {
-    drawing = false;
-  });
-  ui.spriteCanvas?.addEventListener("pointercancel", () => {
-    drawing = false;
+  initSpriteEditor(ui, {
+    onRedrawPreview: () => {
+      previewStartMs = performance.now();
+    },
   });
 
   ui.sendSpriteBtn?.addEventListener("click", async () => {
@@ -1221,10 +1137,6 @@ function init() {
 
   loadBundledFirmware();
 
-  // Initialize sprite UI
-  setActiveTab(0);
-  setActiveTool("pencil");
-  spriteZoom();
   if (!loadSpritesFromQuery()) {
     setMiniStatus("未転送");
   }

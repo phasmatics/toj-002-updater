@@ -93,6 +93,53 @@ body {
   margin-bottom: 10px;
 }
 
+.layer-list {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.layer-item {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  border: 1px solid var(--line);
+}
+
+.layer-vis {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-right: 1px solid var(--line);
+  background: var(--base);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.layer-vis i {
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.layer-vis:not(.is-visible) i {
+  opacity: 0.45;
+}
+
+.layer-tab {
+  min-width: 36px;
+  padding-left: 10px;
+  padding-right: 10px;
+  border-radius: 0;
+}
+
 .tab {
   border: 1px solid var(--line);
   background: var(--base);
@@ -108,10 +155,93 @@ body {
   color: var(--base);
 }
 
+.layer-item .layer-tab {
+  border: none;
+}
+
+.editor-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.tool-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid var(--line);
+  padding: 4px;
+}
+
+.tool-bar__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+}
+
+.tool-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--line);
+  background: var(--base);
+  color: var(--ink);
+  font: inherit;
+  font-size: 9px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+}
+
+.tool-btn i {
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.tool-btn.is-active {
+  background: var(--ink);
+  color: var(--base);
+}
+
+.tool-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.tool-btn--action {
+  font-size: 8px;
+  width: auto;
+  min-width: 32px;
+  padding: 0 4px;
+}
+
+.editor-options {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto 1fr auto;
+  gap: 6px 8px;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.option-label {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.option-value {
+  font-family: var(--mono);
+  font-size: 10px;
+  min-width: 2.2rem;
+}
+
 .sprite-canvas-wrap {
   display: grid;
   place-items: center;
-  margin-bottom: 10px;
 }
 
 .sprite-canvas {
@@ -119,44 +249,7 @@ body {
   image-rendering: crisp-edges;
   background: #000;
   border: 1px solid var(--line);
-  width: 160px; /* JS で zoom に合わせて上書き */
-  height: 160px;
   touch-action: none;
-}
-
-.sprite-tools {
-  display: grid;
-  grid-template-columns: auto auto auto 1fr auto;
-  gap: 6px 8px;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.tool {
-  border: 1px solid var(--line);
-  background: var(--base);
-  color: var(--ink);
-  padding: 6px 8px;
-  font: inherit;
-  font-size: 11px;
-  cursor: pointer;
-}
-
-.tool.is-active {
-  background: var(--ink);
-  color: var(--base);
-}
-
-.zoom-label {
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.zoom-value {
-  font-family: var(--mono);
-  font-size: 11px;
-  text-align: right;
 }
 
 .sprite-actions {
