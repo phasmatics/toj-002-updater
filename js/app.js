@@ -308,7 +308,8 @@ function drawBitmapRotated(ctx, bmpBytes, x, y, w, h, scale, deg) {
   const cy = y + (h * scale) / 2;
   ctx.save();
   ctx.translate(cx, cy);
-  ctx.rotate((deg * Math.PI) / 180);
+  // Device formula uses +deg as counter-clockwise; canvas +deg is clockwise.
+  ctx.rotate((-deg * Math.PI) / 180);
   ctx.translate(-cx, -cy);
   drawBitmap1bpp(ctx, bmpBytes, x, y, w, h, scale);
   ctx.restore();
