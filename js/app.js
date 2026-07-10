@@ -81,7 +81,7 @@ patchSambaConnectForWindows();
 
 const FIRMWARE_URL = "./firmware.bin";
 /** 同梱ファームウェアの表示用バージョン（リリース時にここだけ書き換え） */
-const FIRMWARE_VERSION = "0.6.1";
+const FIRMWARE_VERSION = "0.7";
 const BOOTLOADER_SIZE = 0x2000;
 
 // Sprite transfer protocol (TOJS)
