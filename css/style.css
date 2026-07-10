@@ -86,6 +86,17 @@ body {
   padding: 10px;
 }
 
+.sprite-pane--preview {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.sprite-pane--preview .sprite-actions {
+  margin-top: auto;
+  padding-top: 12px;
+}
+
 .sprite-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;

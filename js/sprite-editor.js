@@ -283,6 +283,18 @@ function cutSelection() {
   return true;
 }
 
+function deleteSelection() {
+  if (!hasSelection()) return false;
+  pushHistory();
+  clearOpaqueRect(currentBuf(), selection);
+  selection = null;
+  selectStart = null;
+  drawSpriteEditor();
+  onRedrawPreview();
+  updateActionButtons();
+  return true;
+}
+
 function pasteClipboard() {
   if (!clipboard) return false;
   pushHistory();
@@ -765,7 +777,7 @@ function handleDocumentPointerDown(evt) {
   if (canvas?.contains(evt.target)) return;
 
   const target = evt.target;
-  if (target instanceof Element && target.closest(".tool-bar, .editor-options, .sprite-tabs, .layer-list")) {
+  if (target instanceof Element && target.closest(".tool-bar, .editor-options, .sprite-tabs, .layer-list, .sprite-actions")) {
     return;
   }
 
@@ -785,6 +797,13 @@ function handleKeyDown(evt) {
     }
     if (hasSelection()) {
       clearSelection();
+      evt.preventDefault();
+    }
+    return;
+  }
+
+  if (evt.key === "Delete" || evt.key === "Backspace") {
+    if (deleteSelection()) {
       evt.preventDefault();
     }
     return;
