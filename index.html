@@ -116,22 +116,18 @@
               </div>
 
               <div class="tool-bar" id="spriteToolBar" aria-label="描画ツール">
-                <div class="tool-bar__row">
-                  <button type="button" class="tool-btn" data-tool="select" title="選択" aria-label="選択"><i class="fa-regular fa-object-group"></i></button>
-                  <button type="button" class="tool-btn" data-tool="move" title="移動（未選択時はレイヤー全体）" aria-label="移動"><i class="fa-solid fa-arrows-up-down-left-right"></i></button>
-                  <button type="button" class="tool-btn is-active" data-tool="pencil" title="鉛筆" aria-label="鉛筆"><i class="fa-solid fa-pencil"></i></button>
-                  <button type="button" class="tool-btn" data-tool="eraser" title="消しゴム" aria-label="消しゴム"><i class="fa-solid fa-eraser"></i></button>
-                  <button type="button" class="tool-btn" data-tool="fill" title="塗りつぶし" aria-label="塗りつぶし"><i class="fa-solid fa-fill-drip"></i></button>
-                  <button type="button" class="tool-btn" data-tool="line" title="直線" aria-label="直線"><i class="fa-solid fa-slash"></i></button>
-                </div>
-                <div class="tool-bar__row">
-                  <button type="button" class="tool-btn tool-btn--action" id="toolCopy" title="コピー (Ctrl+C)" aria-label="コピー" disabled><i class="fa-regular fa-copy"></i></button>
-                  <button type="button" class="tool-btn tool-btn--action" id="toolCut" title="カット (Ctrl+X)" aria-label="カット" disabled><i class="fa-solid fa-scissors"></i></button>
-                  <button type="button" class="tool-btn tool-btn--action" id="toolPaste" title="ペースト (Ctrl+V) — 上位レイヤーへ" aria-label="ペースト" disabled><i class="fa-regular fa-paste"></i></button>
-                  <button type="button" class="tool-btn tool-btn--action" id="toolRotateCW" title="右回転" aria-label="右回転" disabled><i class="fa-solid fa-arrow-rotate-right"></i></button>
-                  <button type="button" class="tool-btn tool-btn--action" id="toolFlipH" title="左右反転" aria-label="左右反転" disabled><i class="fa-solid fa-arrows-left-right"></i></button>
-                  <button type="button" class="tool-btn tool-btn--action" id="toolFlipV" title="上下反転" aria-label="上下反転" disabled><i class="fa-solid fa-arrows-up-down"></i></button>
-                </div>
+                <button type="button" class="tool-btn" data-tool="select" title="選択" aria-label="選択"><i class="fa-regular fa-object-group"></i></button>
+                <button type="button" class="tool-btn" data-tool="move" title="移動（未選択時はレイヤー全体）" aria-label="移動"><i class="fa-solid fa-arrows-up-down-left-right"></i></button>
+                <button type="button" class="tool-btn is-active" data-tool="pencil" title="鉛筆" aria-label="鉛筆"><i class="fa-solid fa-pencil"></i></button>
+                <button type="button" class="tool-btn" data-tool="eraser" title="消しゴム" aria-label="消しゴム"><i class="fa-solid fa-eraser"></i></button>
+                <button type="button" class="tool-btn" data-tool="fill" title="塗りつぶし" aria-label="塗りつぶし"><i class="fa-solid fa-fill-drip"></i></button>
+                <button type="button" class="tool-btn" data-tool="line" title="直線" aria-label="直線"><i class="fa-solid fa-slash"></i></button>
+                <button type="button" class="tool-btn tool-btn--action" id="toolCopy" title="コピー (Ctrl+C)" aria-label="コピー" disabled><i class="fa-regular fa-copy"></i></button>
+                <button type="button" class="tool-btn tool-btn--action" id="toolCut" title="カット (Ctrl+X)" aria-label="カット" disabled><i class="fa-solid fa-scissors"></i></button>
+                <button type="button" class="tool-btn tool-btn--action" id="toolPaste" title="ペースト (Ctrl+V) — 上位レイヤーへ" aria-label="ペースト" disabled><i class="fa-regular fa-paste"></i></button>
+                <button type="button" class="tool-btn tool-btn--action" id="toolRotateCW" title="右回転" aria-label="右回転" disabled><i class="fa-solid fa-arrow-rotate-right"></i></button>
+                <button type="button" class="tool-btn tool-btn--action" id="toolFlipH" title="左右反転" aria-label="左右反転" disabled><i class="fa-solid fa-arrows-left-right"></i></button>
+                <button type="button" class="tool-btn tool-btn--action" id="toolFlipV" title="上下反転" aria-label="上下反転" disabled><i class="fa-solid fa-arrows-up-down"></i></button>
               </div>
 
               <div class="editor-options">
@@ -161,7 +157,7 @@
             <div class="sprite-actions">
               <button id="sendSpriteBtn" type="button" class="btn-primary">キャラクターを転送</button>
               <button id="resetSpriteBtn" type="button" class="btn-secondary">デフォルトに戻す</button>
-              <button id="shareSpriteBtn" type="button" class="btn-secondary">共有</button>
+              <button id="shareSpriteBtn" type="button" class="btn-secondary">キャラクターを共有</button>
               <div id="spriteStatus" class="mini-status" role="status" aria-live="polite">未転送</div>
             </div>
           </div>
@@ -173,11 +169,13 @@
         <p class="backup-note">
           通常は同梱の <code>firmware.bin</code> を自動で使用します。テスト時のみローカルの .bin を選べます。
         </p>
-        <label class="file-label" for="manualFile">
-          <input id="manualFile" type="file" accept=".bin,application/octet-stream">
-          <span id="manualFileName">ファイル未選択（自動取得を使用）</span>
-        </label>
-        <button id="clearManualBtn" type="button" class="btn-secondary" disabled>手動選択を解除</button>
+        <div class="backup-actions">
+          <label class="file-label" for="manualFile">
+            <input id="manualFile" type="file" accept=".bin,application/octet-stream">
+            <span id="manualFileName">ファイル未選択（自動取得を使用）</span>
+          </label>
+          <button id="clearManualBtn" type="button" class="btn-secondary" disabled>手動選択を解除</button>
+        </div>
       </section>
 
       <footer class="cell cell--footer">

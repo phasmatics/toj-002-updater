@@ -110,7 +110,6 @@ body {
   justify-content: center;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
 }
 
 .layer-item {
@@ -173,23 +172,18 @@ body {
 .editor-layout {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 16px;
   margin-bottom: 10px;
 }
 
 .tool-bar {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  border: 1px solid var(--line);
-  padding: 4px;
-}
-
-.tool-bar__row {
-  display: flex;
+  flex-direction: row;
   flex-wrap: wrap;
   gap: 4px;
   justify-content: center;
+  border: 1px solid var(--line);
+  padding: 4px;
 }
 
 .tool-btn {
@@ -540,7 +534,6 @@ body {
 }
 
 .btn-secondary {
-  margin-top: 8px;
   padding: 6px 10px;
   background: var(--ink);
   color: var(--base);
@@ -566,7 +559,7 @@ body {
 }
 
 .log {
-  min-height: 140px;
+  min-height: 100px;
   max-height: 200px;
   overflow-y: auto;
   padding: 8px;
@@ -598,11 +591,26 @@ body {
   line-height: 1.5;
 }
 
+.backup-actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.backup-actions .btn-secondary {
+  margin-top: 0;
+  white-space: nowrap;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
 .file-label {
   display: block;
   padding: 8px 10px;
   border: 1px solid var(--line);
   cursor: pointer;
+  min-width: 0;
 }
 
 .file-label:hover {
